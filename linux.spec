@@ -35,11 +35,12 @@ Distribution:   Photon
 Source0:        http://www.kernel.org/pub/linux/kernel/v5.x/linux-%{version}.tar.xz
 %define sha512 linux=48b04c27f183fc90fb7ccebba62d4e99bd3272e7f2618c0bd8ea864b89acfb2b4b4f69361774c960685267b52b70c4f7454dfcc61f64e9781939e2374870ee4e
 Source1:        config_%{_arch}
-Source2:        initramfs.trigger
+Source2:        config_toolchain%{?dist}
+Source3:        initramfs.trigger
 
 %ifarch x86_64
 %define ena_version 2.4.0
-Source3:    https://github.com/amzn/amzn-drivers/archive/ena_linux_%{ena_version}.tar.gz
+Source4:    https://github.com/amzn/amzn-drivers/archive/ena_linux_%{ena_version}.tar.gz
 %define sha512 ena_linux=e14b706d06444dcc832d73150a08bbdc0fc53b291d2fd233aef62d8f989f529b4aabc7865526fe27a895d43d5f8ba5993752a920601be8a1d3ed9ea973e9c6ef
 
 %define sgx_version 1.8
@@ -49,7 +50,7 @@ Source5:    https://github.com/intel/SGXDataCenterAttestationPrimitives/archive/
 
 # contains pre, postun, filetriggerun tasks
 Source6:        scriptlets.inc
-Source7:        check_for_config_applicability.inc
+Source7:        check_for_config_applicability.sh
 
 %ifarch x86_64
 %define i40e_version 2.22.18
@@ -347,7 +348,6 @@ BuildRequires:  slang-devel
 BuildRequires:  python3-devel
 BuildRequires:  bison
 BuildRequires:  dwarves-devel
-BuildRequires:  linux-api-headers = 5.10.206
 
 %ifarch x86_64
 BuildRequires:  pciutils-devel
@@ -450,7 +450,7 @@ Python programming language to use the interface to manipulate perf events.
 %setup -q -n linux-%{version}
 %ifarch x86_64
 # Using autosetup is not feasible
-%setup -q -T -D -b 3 -n linux-%{version}
+%setup -q -T -D -b 4 -n linux-%{version}
 # Using autosetup is not feasible
 %setup -q -T -D -b 5 -n linux-%{version}
 # Using autosetup is not feasible
@@ -593,7 +593,9 @@ sed -i 's/CONFIG_LOCALVERSION=""/CONFIG_LOCALVERSION="-%{release}"/' .config
 sed -i '/CONFIG_CRYPTO_SELF_TEST=y/a CONFIG_CRYPTO_BROKEN_KAT=y' .config
 %endif
 
-%include %{SOURCE7}
+# check for changes in .config
+cp %{SOURCE2} .config_toolchain
+sh %{SOURCE7}
 
 # Set/add CONFIG_CROSS_COMPILE= if needed
 if [ %{_host} != %{_build} ]; then
@@ -777,7 +779,7 @@ ARCH_FLAGS="EXTRA_CFLAGS=-Wno-error=format-overflow"
 mkdir -p %{buildroot}%{_modulesdir}/dracut.conf.d/
 cp -p %{SOURCE23} %{buildroot}%{_modulesdir}/dracut.conf.d/%{name}.conf
 
-%include %{SOURCE2}
+%include %{SOURCE3}
 %include %{SOURCE6}
 %include %{SOURCE22}
 

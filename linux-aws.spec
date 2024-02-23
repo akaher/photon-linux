@@ -29,10 +29,11 @@ Distribution:   Photon
 Source0:    http://www.kernel.org/pub/linux/kernel/v5.x/linux-%{version}.tar.xz
 %define sha512 linux=48b04c27f183fc90fb7ccebba62d4e99bd3272e7f2618c0bd8ea864b89acfb2b4b4f69361774c960685267b52b70c4f7454dfcc61f64e9781939e2374870ee4e
 Source1:    config-aws
-Source2:    initramfs.trigger
+Source2:    config_toolchain%{?dist}
+Source3:    initramfs.trigger
 # contains pre, postun, filetriggerun tasks
-Source3:    scriptlets.inc
-Source4:    check_for_config_applicability.inc
+Source4:    scriptlets.inc
+Source5:    check_for_config_applicability.sh
 
 %if 0%{?fips}
 Source9:        check_fips_canister_struct_compatibility.inc
@@ -375,7 +376,9 @@ sed -i 's/CONFIG_LOCALVERSION="-aws"/CONFIG_LOCALVERSION="-%{release}-aws"/' .co
 sed -i '/CONFIG_CRYPTO_SELF_TEST=y/a CONFIG_CRYPTO_BROKEN_KAT=y' .config
 %endif
 
-%include %{SOURCE4}
+# check for changes in .config
+cp %{SOURCE2} .config_toolchain
+sh %{SOURCE5}
 
 %build
 make %{?_smp_mflags} VERBOSE=1 KBUILD_BUILD_VERSION="1-photon" \
@@ -453,8 +456,8 @@ cp -p %{SOURCE23} %{buildroot}%{_modulesdir}/dracut.conf.d/%{name}.conf
 # fixdep: error opening depfile: ./.plugin_cfg80211.o.d: No such file or directory
 # Linux version that was affected is 4.4.26
 
-%include %{SOURCE2}
 %include %{SOURCE3}
+%include %{SOURCE4}
 %include %{SOURCE22}
 
 %post

@@ -24,32 +24,33 @@ Distribution:   Photon
 Source0:        http://www.kernel.org/pub/linux/kernel/v5.x/linux-%{version}.tar.xz
 %define sha512 linux=48b04c27f183fc90fb7ccebba62d4e99bd3272e7f2618c0bd8ea864b89acfb2b4b4f69361774c960685267b52b70c4f7454dfcc61f64e9781939e2374870ee4e
 Source1:        config-esx
-Source2:        initramfs.trigger
+Source2:        config_toolchain%{?dist}
+Source3:        initramfs.trigger
 # contains pre, postun, filetriggerun tasks
-Source3:        scriptlets.inc
-Source4:        check_for_config_applicability.inc
+Source4:        scriptlets.inc
+Source5:        check_for_config_applicability.sh
 
 %ifarch x86_64
 # Intel i915 baskport
 %define i915_backports RHEL88_23WW28.5_647.21_23.5.19_230406.22
-Source5:        https://github.com/intel-gpu/intel-gpu-i915-backports/archive/refs/tags/%{i915_backports}.tar.gz
+Source6:        https://github.com/intel-gpu/intel-gpu-i915-backports/archive/refs/tags/%{i915_backports}.tar.gz
 %define sha512 RHEL88=1b9a13c18631f3a5f245fa226f56cefaeb70af7631eeceda707b3daafbb6650f5f6840f02fc86186241b7d9b17e70495d3e0f342e271f9817e0411facdf113b7
 
 %define i40e_version 2.22.18
-Source6:        https://sourceforge.net/projects/e1000/files/i40e%20stable/%{i40e_version}/i40e-%{i40e_version}.tar.gz
+Source7:        https://sourceforge.net/projects/e1000/files/i40e%20stable/%{i40e_version}/i40e-%{i40e_version}.tar.gz
 %define sha512 i40e=042fd064528cb807894dc1f211dcb34ff28b319aea48fc6dede928c93ef4bbbb109bdfc903c27bae98b2a41ba01b7b1dffc3acac100610e3c6e95427162a26ac
 
 %define iavf_version 4.8.2
-Source7:       https://sourceforge.net/projects/e1000/files/iavf%20stable/%{iavf_version}/iavf-%{iavf_version}.tar.gz
+Source8:       https://sourceforge.net/projects/e1000/files/iavf%20stable/%{iavf_version}/iavf-%{iavf_version}.tar.gz
 %define sha512 iavf=5406b86e61f6528adfd7bc3a5f330cec8bb3b4d6c67395961cc6ab78ec3bd325c3a8655b8f42bf56fb47c62a85fb7dbb0c1aa3ecb6fa069b21acb682f6f578cf
 
 %define ice_version 1.11.14
-Source8:       https://sourceforge.net/projects/e1000/files/ice%20stable/%{ice_version}/ice-%{ice_version}.tar.gz
+Source9:       https://sourceforge.net/projects/e1000/files/ice%20stable/%{ice_version}/ice-%{ice_version}.tar.gz
 %define sha512 ice=a2a6a498e553d41e4e6959a19cdb74f0ceff3a7dbcbf302818ad514fdc18e3d3b515242c88d55ef8a00c9d16925f0cd8579cb41b3b1c27ea6716ccd7e70fd847
 %endif
 
 %if 0%{?fips}
-Source9:        check_fips_canister_struct_compatibility.inc
+Source10:        check_fips_canister_struct_compatibility.inc
 
 %define fips_canister_version 4.0.1-5.10.21-3-secure
 Source16:       fips-canister-%{fips_canister_version}.tar.bz2
@@ -383,13 +384,13 @@ The Linux package contains the Linux kernel doc files
 %setup -q -n linux-%{version}
 %ifarch x86_64
 # Using autosetup is not feasible
-%setup -q -T -D -b 5 -n intel-gpu-i915-backports-%{i915_backports}
-# Using autosetup is not feasible
-%setup -q -T -D -b 6 -n linux-%{version}
+%setup -q -T -D -b 6 -n intel-gpu-i915-backports-%{i915_backports}
 # Using autosetup is not feasible
 %setup -q -T -D -b 7 -n linux-%{version}
 # Using autosetup is not feasible
 %setup -q -T -D -b 8 -n linux-%{version}
+# Using autosetup is not feasible
+%setup -q -T -D -b 9 -n linux-%{version}
 %endif
 %if 0%{?fips}
 # Using autosetup is not feasible
@@ -465,6 +466,7 @@ popd
 
 make %{?_smp_mflags} mrproper
 cp %{SOURCE1} .config
+
 %if 0%{?fips}
 cp ../fips-canister-%{fips_canister_version}/fips_canister.o crypto/
 cp ../fips-canister-%{fips_canister_version}/fips_canister_wrapper.c crypto/
@@ -482,19 +484,22 @@ patch -p1 < %{SOURCE22}
 %include %{SOURCE17}
 %endif
 %endif
+
 sed -i 's/CONFIG_LOCALVERSION="-esx"/CONFIG_LOCALVERSION="-%{release}-esx"/' .config
 
 %if 0%{?kat_build}
 sed -i '/CONFIG_CRYPTO_SELF_TEST=y/a CONFIG_CRYPTO_BROKEN_KAT=y' .config
 %endif
 
-%include %{SOURCE4}
+# check for changes in .config
+cp %{SOURCE2} .config_toolchain
+sh %{SOURCE5}
 
 %build
 make V=1 KBUILD_BUILD_VERSION="1-photon" KBUILD_BUILD_HOST="photon" ARCH="x86_64" %{?_smp_mflags}
 
 %if 0%{?fips}
-%include %{SOURCE9}
+%include %{SOURCE10}
 %endif
 
 %ifarch x86_64
@@ -616,8 +621,8 @@ cp .config %{buildroot}%{_usrsrc}/linux-headers-%{uname_r}
 ln -sf "%{_usrsrc}/linux-headers-%{uname_r}" "%{buildroot}%{_modulesdir}/build"
 find %{buildroot}/lib/modules -name '*.ko' -print0 | xargs -0 chmod u+x
 
-%include %{SOURCE2}
 %include %{SOURCE3}
+%include %{SOURCE4}
 %include %{SOURCE23}
 
 %post

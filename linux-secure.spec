@@ -24,10 +24,11 @@ Distribution:   Photon
 Source0:        http://www.kernel.org/pub/linux/kernel/v5.x/linux-%{version}.tar.xz
 %define sha512 linux=48b04c27f183fc90fb7ccebba62d4e99bd3272e7f2618c0bd8ea864b89acfb2b4b4f69361774c960685267b52b70c4f7454dfcc61f64e9781939e2374870ee4e
 Source1:        config-secure
-Source2:        initramfs.trigger
+Source2:        config_toolchain%{?dist}
+Source3:        initramfs.trigger
 # contains pre, postun, filetriggerun tasks
-Source3:        scriptlets.inc
-Source4:        check_for_config_applicability.inc
+Source4:        scriptlets.inc
+Source5:        check_for_config_applicability.sh
 
 %if 0%{?fips}
 Source9:        check_fips_canister_struct_compatibility.inc
@@ -123,7 +124,15 @@ Patch61: 0001-x86-boot-Avoid-VE-during-boot-for-TDX-platforms.patch
 Patch90: 0001-bpf-ext4-bonding-Fix-compilation-errors.patch
 Patch91: 0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch
 Patch92: 0002-Added-PAX_RANDKSTACK.patch
-Patch93: 0003-Added-rap_plugin.patch
+
+%if ".ph4"=="%{?dist}"
+Patch93: 0003-Added-rap_plugin.ph4.patch
+%endif
+
+%if ".ph5"=="%{?dist}"
+Patch93: 0003-Added-rap_plugin.ph5.patch
+%endif
+
 Patch94: 0004-Fix-PAX-function-pointer-overwritten-for-tasklet-cal.patch
 
 # CVE:
@@ -308,7 +317,7 @@ The Linux package contains the Linux kernel doc files
 %endif
 
 #Secure
-%autopatch -p1 -m90 -M94
+%autopatch -p1 -m90 -M95
 
 # CVE
 %autopatch -p1 -m100 -M144
@@ -367,7 +376,9 @@ sed -i 's/CONFIG_LOCALVERSION="-secure"/CONFIG_LOCALVERSION="-%{release}-secure"
 sed -i '/CONFIG_CRYPTO_SELF_TEST=y/a CONFIG_CRYPTO_BROKEN_KAT=y' .config
 %endif
 
-%include %{SOURCE4}
+# check for changes in .config
+cp %{SOURCE2} .config_toolchain
+sh %{SOURCE5}
 
 %build
 make V=1 KBUILD_BUILD_VERSION="1-photon" \
@@ -426,8 +437,8 @@ cp .config %{buildroot}%{_usrsrc}/linux-headers-%{uname_r}
 # symling to the build folder
 ln -sf %{_usrsrc}/linux-headers-%{uname_r} %{buildroot}%{_modulesdir}/build
 
-%include %{SOURCE2}
 %include %{SOURCE3}
+%include %{SOURCE4}
 %include %{SOURCE22}
 
 %post

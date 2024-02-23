@@ -33,11 +33,12 @@ Source0:        http://www.kernel.org/pub/linux/kernel/v5.x/linux-%{version}.tar
 %define sha512 linux=48b04c27f183fc90fb7ccebba62d4e99bd3272e7f2618c0bd8ea864b89acfb2b4b4f69361774c960685267b52b70c4f7454dfcc61f64e9781939e2374870ee4e
 %ifarch x86_64
 Source1: config-rt
+Source2: config_toolchain%{?dist}
 %endif
-Source2: initramfs.trigger
+Source3: initramfs.trigger
 # contains pre, postun, filetriggerun tasks
 Source4: scriptlets.inc
-Source5: check_for_config_applicability.inc
+Source5: check_for_config_applicability.sh
 # Real-Time kernel (PREEMPT_RT patches)
 # Source: https://cdn.kernel.org/pub/linux/kernel/projects/rt/5.10/
 Source6: preempt_rt.patches
@@ -482,7 +483,9 @@ sed -i 's/CONFIG_LOCALVERSION="-rt"/CONFIG_LOCALVERSION="-%{release}-rt"/' .conf
 sed -i '/CONFIG_CRYPTO_SELF_TEST=y/a CONFIG_CRYPTO_BROKEN_KAT=y' .config
 %endif
 
-%include %{SOURCE5}
+# check for changes in .config
+cp %{SOURCE2} .config_toolchain
+sh %{SOURCE5}
 
 %build
 make %{?_smp_mflags} V=1 KBUILD_BUILD_VERSION="1-photon" \
@@ -606,7 +609,7 @@ find %{buildroot}/lib/modules -name '*.ko' -print0 | xargs -0 chmod u+x
 mkdir -p %{buildroot}%{_modulesdir}/dracut.conf.d/
 cp -p %{SOURCE23} %{buildroot}%{_modulesdir}/dracut.conf.d/%{name}.conf
 
-%include %{SOURCE2}
+%include %{SOURCE3}
 %include %{SOURCE4}
 %include %{SOURCE22}
 
