@@ -282,14 +282,6 @@ The Linux package contains the Linux kernel doc files
 %prep
 # Using autosetup is not feasible
 %setup -q -n linux-%{version}
-%ifarch x86_64
-# Using autosetup is not feasible
-%setup -q -T -D -b 6 -n linux-%{version}
-# Using autosetup is not feasible
-%setup -q -T -D -b 7 -n linux-%{version}
-# Using autosetup is not feasible
-%setup -q -T -D -b 8 -n linux-%{version}
-%endif
 %if 0%{?fips}
 # Using autosetup is not feasible
 %setup -q -T -D -b 16 -n linux-%{version}

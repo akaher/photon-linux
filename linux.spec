@@ -362,14 +362,6 @@ manipulation of eBPF programs and maps.
 %setup -q -T -D -b 3 -n linux-%{version}
 # Using autosetup is not feasible
 %setup -q -T -D -b 4 -n linux-%{version}
-%ifarch x86_64
-# Using autosetup is not feasible
-%setup -q -T -D -b 10 -n linux-%{version}
-# Using autosetup is not feasible
-%setup -q -T -D -b 11 -n linux-%{version}
-# Using autosetup is not feasible
-%setup -q -T -D -b 13 -n linux-%{version}
-%endif
 
 %if 0%{?fips}
 # Using autosetup is not feasible
